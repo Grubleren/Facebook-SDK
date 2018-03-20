@@ -32,7 +32,30 @@ namespace JH.Applications
 
         static int CompareItemPair(ItemPair x, ItemPair y)
         {
-            return x.text.CompareTo(y.text);
+            string x1="";
+            string y1 = "";
+
+            int pos = 0;
+            for (int i = 0; i < x.text.Length; i++)
+                if (x.text[i] != ' ')
+                {
+                    pos = i;
+                    break;
+                }
+            for (int i = pos; i < x.text.Length; i++)
+                x1 += x.text[i];
+
+            pos = 0;
+            for (int i = 0; i < y.text.Length; i++)
+                if (y.text[i] != ' ')
+                {
+                    pos = i;
+                    break;
+                }
+            for (int i = pos; i < y.text.Length; i++)
+                y1 += y.text[i];
+
+            return x1.CompareTo(y1);
         }
 
         private readonly IFacebookClient facebookClient = new FacebookClient();
@@ -57,7 +80,7 @@ namespace JH.Applications
 
             button3.BackColor = Color.Green;
 
-            Text = "BlackFrog" + " ver. 1.12"; //remember pdate of XSLT
+            Text = "BlackFrog" + " ver. 1.14"; //remember update of XSLT
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -149,7 +172,7 @@ namespace JH.Applications
 
             foreach (ItemPair album in albumList)
             {
-                if (album.text.Substring(0, textBox2.Text.Length).ToLower() == textBox2.Text.ToLower() || textBox2.Text == "")
+                if ((album.text.Length >= textBox2.Text.Length && album.text.Substring(0, textBox2.Text.Length).ToLower() == textBox2.Text.ToLower()) || textBox2.Text == "")
                 {
                     albumSubList.Add(album);
                 }
@@ -412,10 +435,11 @@ namespace JH.Applications
             xmlDoc.DocumentElement.InsertAfter(aId, aName);
 
             XmlDocument xmlDocument = GetAsyncAll("root", albumId, "fields=description");
-            XmlNode ndescription = GetNode(xmlDocument.FirstChild.ChildNodes, "description");
+            XmlNode ndescription = GetNode(xmlDocument.FirstChild.FirstChild.ChildNodes, "description");
             if (ndescription != null)
             {
-                xmlDoc.DocumentElement.InsertAfter(ndescription, aId);
+                XmlNode imported = xmlDoc.ImportNode(ndescription, true);
+                xmlDoc.DocumentElement.InsertAfter(imported, aId);
             }
 
             return xmlDoc;
@@ -673,10 +697,10 @@ namespace JH.Applications
     <HTML>
 <head>
 <meta http-equiv=""Content-Type"" content=""text/html; charset=windows-1252""/>
-<title><xsl:value-of select=""groupName""/>/></title>
+<title><xsl:value-of select=""groupName""/></title>
 <meta name=""author"" content=""Jens Hee""/>
 <meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.12""/>
+<meta name=""programversion"" content=""1.14""/>
 
 </head>
       <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
@@ -699,6 +723,14 @@ namespace JH.Applications
               <xsl:value-of select=""albumName""/>
             </a>
           </h2>
+            
+          <xsl:if test=""description != ''"">
+          <br><b>Description</b></br>
+              <br>
+                <xsl:value-of select=""description""/>
+              </br>
+              <br></br>
+              </xsl:if>
 
           <xsl:if test=""comments != ''"">
             <br>
@@ -726,18 +758,16 @@ namespace JH.Applications
 
           <xsl:for-each select=""photos/page"">
             <xsl:for-each select=""data"">
-              <xsl:variable name=""href"">
-                <xsl:value-of select=""source""/>
-              </xsl:variable>
-              <br>
-                <a href=""{$href}"">Picture</a>
-              </br>
+              <br></br>
               <xsl:variable name=""href1"">
                 https://www.facebook.com/photo.php?fbid=<xsl:value-of select=""id""/>
               </xsl:variable>
-              <br>
                 <a href=""{$href1}"">Feed </a>
-              </br>
+                        <span style=""display:inline-block; width: 5;""></span>
+              <xsl:variable name=""href"">
+                <xsl:value-of select=""source""/>
+              </xsl:variable>
+                <a href=""{$href}"">Picture</a>
               <br>
                 <b>Heading:</b>
               </br>
@@ -802,10 +832,10 @@ namespace JH.Applications
     <HTML>
 <head>
 <meta http-equiv=""Content-Type"" content=""text/html; charset=windows-1252""/>
-<title><xsl:value-of select=""groupName""/>/></title>
+<title><xsl:value-of select=""groupName""/></title>
 <meta name=""author"" content=""Jens Hee""/>
 <meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.12""/>
+<meta name=""programversion"" content=""1.14""/>
 
 </head>
       <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
@@ -848,6 +878,14 @@ namespace JH.Applications
             </a>
           </h2>
 
+          <xsl:if test=""description != ''"">
+          <br><b>Description</b></br>
+              <br>
+                <xsl:value-of select=""description""/>
+              </br>
+              <br></br>
+              </xsl:if>
+
           <xsl:if test=""comments != ''"">
             <br>
               <b>Comments:</b>
@@ -874,18 +912,16 @@ namespace JH.Applications
 
           <xsl:for-each select=""photos/page"">
             <xsl:for-each select=""data"">
-              <xsl:variable name=""href"">
-                <xsl:value-of select=""source""/>
-              </xsl:variable>
-              <br>
-                <a href=""{$href}"">Picture</a>
-              </br>
+              <br></br>
               <xsl:variable name=""href1"">
                 https://www.facebook.com/photo.php?fbid=<xsl:value-of select=""id""/>
               </xsl:variable>
-              <br>
                 <a href=""{$href1}"">Feed </a>
-              </br>
+                        <span style=""display:inline-block; width: 5;""></span>
+              <xsl:variable name=""href"">
+                <xsl:value-of select=""source""/>
+              </xsl:variable>
+                <a href=""{$href}"">Picture</a>
               <br>
                 <b>Heading:</b>
               </br>
