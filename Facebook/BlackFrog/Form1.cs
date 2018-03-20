@@ -80,7 +80,7 @@ namespace JH.Applications
 
             button3.BackColor = Color.Green;
 
-            Text = "BlackFrog" + " ver. 1.14"; //remember update of XSLT
+            Text = "BlackFrog" + " ver. 1.15"; //remember update of XSLT
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -585,6 +585,20 @@ namespace JH.Applications
 
             return nod;
         }
+
+        string CleanXml(string input)
+        {
+            string output = "";
+
+            foreach (char c in input)
+                if ((int)c >= 32)
+                    output += c;
+                else
+                    Thread.Sleep(1);
+
+            return output;
+        }
+
         XmlDocument GetAsyncAll(string name, string endPoint, string args)
         {
             XmlDocument xmlBase = new XmlDocument();
@@ -628,7 +642,7 @@ namespace JH.Applications
                 res = "{}";
             else
                 res = result;
-            res = "{page:," + res.Substring(1);
+            res = CleanXml("{page:," + res.Substring(1));
             XmlDocument xmlDocument = JsonConvert.DeserializeXmlNode(res);
 
             return xmlDocument;
@@ -700,7 +714,7 @@ namespace JH.Applications
 <title><xsl:value-of select=""groupName""/></title>
 <meta name=""author"" content=""Jens Hee""/>
 <meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.14""/>
+<meta name=""programversion"" content=""1.15""/>
 
 </head>
       <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
@@ -754,6 +768,7 @@ namespace JH.Applications
                 </xsl:for-each>
               </xsl:if>
             </xsl:for-each>
+            <br></br>
           </xsl:if>
 
           <xsl:for-each select=""photos/page"">
@@ -835,7 +850,7 @@ namespace JH.Applications
 <title><xsl:value-of select=""groupName""/></title>
 <meta name=""author"" content=""Jens Hee""/>
 <meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.14""/>
+<meta name=""programversion"" content=""1.15""/>
 
 </head>
       <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
@@ -908,6 +923,7 @@ namespace JH.Applications
                 </xsl:for-each>
               </xsl:if>
             </xsl:for-each>
+            <br></br>
           </xsl:if>
 
           <xsl:for-each select=""photos/page"">
