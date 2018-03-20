@@ -80,7 +80,7 @@ namespace JH.Applications
 
             button3.BackColor = Color.Green;
 
-            Text = "BlackFrog" + " ver. 1.15"; //remember update of XSLT
+            Text = "BlackFrog" + " ver. 1.16"; //remember update of XSLT
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -589,12 +589,60 @@ namespace JH.Applications
         string CleanXml(string input)
         {
             string output = "";
-
+            string temp = "";
+            int state = 0;
             foreach (char c in input)
-                if ((int)c >= 32)
-                    output += c;
-                else
-                    Thread.Sleep(1);
+            {
+                switch (state)
+                {
+                    case 0:
+                        if (c == '\\')
+                        {
+                            state = 1;
+                            temp += c;
+                        }
+                        else
+                            output += c;
+                        break;
+                    case 1:
+                        if (c == 'u')
+                        {
+                            state = 2;
+                            temp += c;
+                        }
+                        else
+                        {
+                            state = 0;
+                            output += temp + c;
+                            temp = "";
+                        }
+                        break;
+                    case 2:
+                        if (temp.Length < 5)
+                        {
+                            state = 2;
+                            temp += c;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                state = 0;
+                                temp += c;
+                                int code = int.Parse(temp.Substring(2), System.Globalization.NumberStyles.HexNumber);
+                                if (code == 0x9 || code == 0xa || code == 0xd || (code >= 0x20 && code <= 0xd7ff) || (code >= 0xe000 && code <= 0xfffd))
+                                    output += temp;
+                            }
+                            catch
+                            {
+                                output += temp;
+                            }
+                            temp = "";
+                        }
+                        break;
+                }
+            }
+
 
             return output;
         }
@@ -714,7 +762,7 @@ namespace JH.Applications
 <title><xsl:value-of select=""groupName""/></title>
 <meta name=""author"" content=""Jens Hee""/>
 <meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.15""/>
+<meta name=""programversion"" content=""1.16""/>
 
 </head>
       <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
@@ -850,7 +898,7 @@ namespace JH.Applications
 <title><xsl:value-of select=""groupName""/></title>
 <meta name=""author"" content=""Jens Hee""/>
 <meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.15""/>
+<meta name=""programversion"" content=""1.16""/>
 
 </head>
       <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
