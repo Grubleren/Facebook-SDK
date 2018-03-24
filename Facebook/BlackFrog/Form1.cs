@@ -80,7 +80,7 @@ namespace JH.Applications
 
             button3.BackColor = Color.Green;
 
-            Text = "BlackFrog" + " ver. 1.16"; //remember update of XSLT
+            Text = "BlackFrog" + " ver. 1.18"; //remember update of XSLT
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -335,6 +335,12 @@ namespace JH.Applications
                 imported = doc2.ImportNode(doc4.DocumentElement, true);
                 doc2.DocumentElement.AppendChild(imported);
             }
+            XmlDocument doc5 = GetLikes(albumId);
+            if (doc5 != null)
+            {
+                imported = doc2.ImportNode(doc5.DocumentElement, true);
+                doc2.DocumentElement.AppendChild(imported);
+            }
             imported = xmlBase.ImportNode(doc2.DocumentElement, true);
             xmlBase.FirstChild.LastChild.InsertAfter(imported, null);
 
@@ -343,7 +349,7 @@ namespace JH.Applications
             xmlBase.FirstChild.AppendChild(version);
             xmlBase.Save(filenameXml);
 
-            TransformXml2Html(xslAlbum);
+            TransformXml2Html("single.xslt");
 
             EnableAll();
 
@@ -381,6 +387,12 @@ namespace JH.Applications
                     imported = doc2.ImportNode(doc4.DocumentElement, true);
                     doc2.DocumentElement.AppendChild(imported);
                 }
+                XmlDocument doc5 = GetLikes(albumId);
+                if (doc5 != null)
+                {
+                    imported = doc2.ImportNode(doc5.DocumentElement, true);
+                    doc2.DocumentElement.AppendChild(imported);
+                }
                 imported = xmlBase.ImportNode(doc2.DocumentElement, true);
                 xmlBase.FirstChild.LastChild.InsertAfter(imported, n2);
                 n2 = imported;
@@ -394,7 +406,7 @@ namespace JH.Applications
 
             xmlBase.Save(filenameXml);
 
-            TransformXml2Html(xslGroup);
+            TransformXml2Html("all.xslt");
 
             EnableAll();
 
@@ -469,9 +481,15 @@ namespace JH.Applications
                             XmlNode photoId = GetNode(node.ChildNodes, "id");
 
                             XmlDocument l = GetComments(photoId.InnerText);
+                            XmlDocument l1 = GetLikes(photoId.InnerText);
                             if (l != null)
                             {
                                 XmlNode importedDocument = xmlDocument.ImportNode(l.DocumentElement, true);
+                                node.AppendChild(importedDocument);
+                            }
+                            if (l1 != null)
+                            {
+                                XmlNode importedDocument = xmlDocument.ImportNode(l1.DocumentElement, true);
                                 node.AppendChild(importedDocument);
                             }
                         }
@@ -483,7 +501,7 @@ namespace JH.Applications
 
         private XmlDocument GetComments(string nodeId)
         {
-            XmlDocument xmlDocument = GetAsyncAll("comments", nodeId + "/comments", "fields=message,from");
+            XmlDocument xmlDocument = GetAsyncAll("comments", nodeId + "/comments", "fields=message,from,attachment");
 
             XmlDocument doc = null;
             XmlNode n2 = null;
@@ -508,13 +526,62 @@ namespace JH.Applications
                         XmlNode n1 = doc.CreateNode(XmlNodeType.Element, "text", "");
                         n1.InnerText = GetNode(node.ChildNodes, "from").FirstChild.InnerText + ": " + GetNode(node.ChildNodes, "message").InnerText;
                         n.InsertAfter(n1, null);
-
+                        XmlNode n6 = n1;
+                        XmlNode n3 = GetNode(node.ChildNodes, "attachment");
+                        if (n3 != null)
+                        {
+                            XmlNode n4 = GetNode(n3.ChildNodes, "url");
+                            if (n4 != null)
+                            {
+                                XmlNode n5 = doc.CreateNode(XmlNodeType.Element, "attachment", "");
+                                n5.InnerText = n4.InnerText;
+                                n.InsertAfter(n5, n1);
+                                n6 = n5;
+                            }
+                        }
+                        XmlDocument d1 = GetLikes(GetNode(node.ChildNodes, "id").InnerText);
+                            if(d1!=null)
+                            {
+                                XmlNode importNode = doc.ImportNode(d1.DocumentElement, true);
+                                n.InsertAfter(importNode,n6);
+                            }
                         XmlDocument doc1 = GetReply(GetNode(node.ChildNodes, "id").InnerText);
                         if (doc1 != null)
                         {
                             XmlNode s = doc.ImportNode(doc1.DocumentElement, true);
-                            n.InsertAfter(s, n1);
+                            n.InsertAfter(s, n6);
                         }
+                    }
+                }
+            }
+
+            return doc;
+        }
+
+        private XmlDocument GetLikes(string nodeId)
+        {
+            XmlDocument xmlDocument = GetAsyncAll("comments", nodeId + "/likes", "");
+
+            XmlDocument doc = null;
+            XmlNode n2 = null;
+            XmlNodeList list = xmlDocument.FirstChild.ChildNodes;
+            foreach (XmlNode nod in list)
+            {
+                XmlNodeList lst = nod.ChildNodes;
+                foreach (XmlNode node in lst)
+                {
+                    if (node.Name == "data")
+                    {
+                        if (doc == null)
+                        {
+                            doc = new XmlDocument();
+                            XmlNode e = doc.CreateNode(XmlNodeType.Element, "likes", "");
+                            doc.AppendChild(e);
+                            n2 = null;
+                        }
+                        XmlNode n = doc.CreateNode(XmlNodeType.Element, "name", "");
+                        n.InnerText = GetNode(node.ChildNodes, "name").InnerText;
+                        doc.DocumentElement.InsertAfter(n, n2);
                     }
                 }
             }
@@ -550,6 +617,13 @@ namespace JH.Applications
                         n1.InnerText = GetNode(node.ChildNodes, "from").FirstChild.InnerText + ": " + GetNode(node.ChildNodes, "message").InnerText;
                         n.InsertAfter(n1, null);
 
+                        XmlDocument d1 = GetLikes(GetNode(node.ChildNodes, "id").InnerText);
+                        if (d1 != null)
+                        {
+                            XmlNode importNode = doc.ImportNode(d1.DocumentElement, true);
+                            n.InsertAfter(importNode, n1);
+                        }
+
                         XmlDocument doc1 = GetComments(GetNode(node.ChildNodes, "id").InnerText);
                         if (doc1 != null)
                         {
@@ -566,8 +640,10 @@ namespace JH.Applications
         public void TransformXml2Html(string xsl)
         {
             XslCompiledTransform transform = new XslCompiledTransform();
-            transform.Load(XmlReader.Create(new StringReader(xsl)));
+            StreamReader stream = new StreamReader(xsl);
+            transform.Load(XmlReader.Create(stream));
             transform.Transform(filenameXml, filenameHtml);
+            stream.Close();
         }
 
         XmlNode GetNode(XmlNodeList lst, string name)
@@ -752,298 +828,6 @@ namespace JH.Applications
         [SuppressUnmanagedCodeSecurityAttribute()]
         [DllImport("cputime.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern long cputime();
-
-        string xslAlbum =
-@"<xsl:stylesheet xmlns:xsl=""http://www.w3.org/1999/XSL/Transform"" version=""1.0"">
-  <xsl:template match=""root"">
-    <HTML>
-<head>
-<meta http-equiv=""Content-Type"" content=""text/html; charset=windows-1252""/>
-<title><xsl:value-of select=""groupName""/></title>
-<meta name=""author"" content=""Jens Hee""/>
-<meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.16""/>
-
-</head>
-      <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
-        <h1 class=""auto-style1"">
-          <xsl:variable name=""href"">
-            https://www.facebook.com/groups/<xsl:value-of select=""groupId""/>
-          </xsl:variable>
-          <a href=""{$href}"">
-            <xsl:value-of select=""groupName""/>
-          </a>
-        </h1>
-
-        <xsl:for-each select=""albums/album"">
-          <br></br>
-          <h2 class=""auto-style1"">
-            <xsl:variable name=""href"">
-              https://www.facebook.com/media/set/?set=oa.<xsl:value-of select=""albumId""/>
-            </xsl:variable>
-            <a href=""{$href}"">
-              <xsl:value-of select=""albumName""/>
-            </a>
-          </h2>
-            
-          <xsl:if test=""description != ''"">
-          <br><b>Description</b></br>
-              <br>
-                <xsl:value-of select=""description""/>
-              </br>
-              <br></br>
-              </xsl:if>
-
-          <xsl:if test=""comments != ''"">
-            <br>
-              <b>Comments:</b>
-            </br>
-            <xsl:for-each select=""comments/comment"">
-              <br>
-                <xsl:value-of select=""text""/>
-              </br>
-              <xsl:if test=""replies != ''"">
-                <br>
-                  <b>Replies:</b>
-                </br>
-
-                <xsl:for-each select=""replies/reply"">
-                  <br>
-                    <span style=""display:inline-block; width: 30;""></span>
-                    <xsl:value-of select=""text""/>
-                  </br>
-
-                </xsl:for-each>
-              </xsl:if>
-            </xsl:for-each>
-            <br></br>
-          </xsl:if>
-
-          <xsl:for-each select=""photos/page"">
-            <xsl:for-each select=""data"">
-              <br></br>
-              <xsl:variable name=""href1"">
-                https://www.facebook.com/photo.php?fbid=<xsl:value-of select=""id""/>
-              </xsl:variable>
-                <a href=""{$href1}"">Feed </a>
-                        <span style=""display:inline-block; width: 5;""></span>
-              <xsl:variable name=""href"">
-                <xsl:value-of select=""source""/>
-              </xsl:variable>
-                <a href=""{$href}"">Picture</a>
-              <br>
-                <b>Heading:</b>
-              </br>
-              <br>
-                <xsl:value-of select=""name""/>
-              </br>
-
-              <xsl:if test=""tags != ''"">
-                <br>
-                  <b>Tags:</b>
-                </br>
-
-                <xsl:for-each select=""tags/data"">
-                  <xsl:variable name=""x"">
-                    <xsl:value-of select=""x""/>
-                  </xsl:variable>
-                  <xsl:variable name=""y"">
-                    <xsl:value-of select=""y""/>
-                  </xsl:variable>
-                  <br>
-                    <xsl:value-of select=""name""/>: (<xsl:value-of select='format-number(number($x),""#.000"")'/>, <xsl:value-of select='format-number(number($y),""#.000"")'/>)
-                  </br>
-
-                </xsl:for-each>
-              </xsl:if>
-              <xsl:if test=""comments != ''"">
-                <br>
-                  <b>Comments:</b>
-                </br>
-                <xsl:for-each select=""comments/comment"">
-                  <br>
-                    <xsl:value-of select=""text""/>
-                  </br>
-                  <xsl:if test=""replies != ''"">
-                    <br>
-                      <b>Replies:</b>
-                    </br>
-
-                    <xsl:for-each select=""replies/reply"">
-                      <br>
-                        <span style=""display:inline-block; width: 30;""></span>
-                        <xsl:value-of select=""text""/>
-                      </br>
-
-                    </xsl:for-each>
-                  </xsl:if>
-                </xsl:for-each>
-              </xsl:if>
-            </xsl:for-each>
-          </xsl:for-each>
-        </xsl:for-each>
-      <br></br>
-      <br><b><xsl:value-of select=""version""/></b></br>
-      </BODY>
-    </HTML>
-  </xsl:template>
-</xsl:stylesheet>
-";
-        string xslGroup =
-@"<xsl:stylesheet xmlns:xsl=""http://www.w3.org/1999/XSL/Transform"" version=""1.0"">
-  <xsl:template match=""root"">
-    <HTML>
-<head>
-<meta http-equiv=""Content-Type"" content=""text/html; charset=windows-1252""/>
-<title><xsl:value-of select=""groupName""/></title>
-<meta name=""author"" content=""Jens Hee""/>
-<meta name=""program"" content=""BlackFrog""/>
-<meta name=""programversion"" content=""1.16""/>
-
-</head>
-      <BODY  bgcolor=""CFDAC4"" topmargin=""0"" leftmargin=""40"" lang=""da-DK"" dir=""ltr"">
-        <h1 class=""auto-style1"">
-          <xsl:variable name=""href"">
-            https://www.facebook.com/groups/<xsl:value-of select=""groupId""/>
-          </xsl:variable>
-          <a href=""{$href}"">
-            <xsl:value-of select=""groupName""/>
-          </a>
-        </h1>
-
-        <xsl:for-each select=""albums/album"">
-          <xsl:variable name=""href"">
-            https://www.facebook.com/media/set/?set=oa.<xsl:value-of select=""albumId""/>
-
-          </xsl:variable>
-          <xsl:variable name=""pos"">
-            <xsl:value-of select=""position()""/>
-
-          </xsl:variable>
-          <a href=""#{$pos}"">
-            <xsl:value-of select=""albumName""/>
-          </a>
-          <span style=""display:inline-block; width: 8;""></span>
-        </xsl:for-each>
-
-        <xsl:for-each select=""albums/album"">
-          <br></br>
-          <xsl:variable name=""pos"">
-            <xsl:value-of select=""position()""/>
-          </xsl:variable>
-          <a name =""{$pos}""></a>
-          <h2 class=""auto-style1"">
-            <xsl:variable name=""href"">
-              https://www.facebook.com/media/set/?set=oa.<xsl:value-of select=""albumId""/>
-            </xsl:variable>
-            <a href=""{$href}"">
-              <xsl:value-of select=""albumName""/>
-            </a>
-          </h2>
-
-          <xsl:if test=""description != ''"">
-          <br><b>Description</b></br>
-              <br>
-                <xsl:value-of select=""description""/>
-              </br>
-              <br></br>
-              </xsl:if>
-
-          <xsl:if test=""comments != ''"">
-            <br>
-              <b>Comments:</b>
-            </br>
-            <xsl:for-each select=""comments/comment"">
-              <br>
-                <xsl:value-of select=""text""/>
-              </br>
-              <xsl:if test=""replies != ''"">
-                <br>
-                  <b>Replies:</b>
-                </br>
-
-                <xsl:for-each select=""replies/reply"">
-                  <br>
-                    <span style=""display:inline-block; width: 30;""></span>
-                    <xsl:value-of select=""text""/>
-                  </br>
-
-                </xsl:for-each>
-              </xsl:if>
-            </xsl:for-each>
-            <br></br>
-          </xsl:if>
-
-          <xsl:for-each select=""photos/page"">
-            <xsl:for-each select=""data"">
-              <br></br>
-              <xsl:variable name=""href1"">
-                https://www.facebook.com/photo.php?fbid=<xsl:value-of select=""id""/>
-              </xsl:variable>
-                <a href=""{$href1}"">Feed </a>
-                        <span style=""display:inline-block; width: 5;""></span>
-              <xsl:variable name=""href"">
-                <xsl:value-of select=""source""/>
-              </xsl:variable>
-                <a href=""{$href}"">Picture</a>
-              <br>
-                <b>Heading:</b>
-              </br>
-              <br>
-                <xsl:value-of select=""name""/>
-              </br>
-
-              <xsl:if test=""tags != ''"">
-                <br>
-                  <b>Tags:</b>
-                </br>
-
-                <xsl:for-each select=""tags/data"">
-                  <xsl:variable name=""x"">
-                    <xsl:value-of select=""x""/>
-                  </xsl:variable>
-                  <xsl:variable name=""y"">
-                    <xsl:value-of select=""y""/>
-                  </xsl:variable>
-                  <br>
-                    <xsl:value-of select=""name""/>: (<xsl:value-of select='format-number(number($x),""#.000"")'/>, <xsl:value-of select='format-number(number($y),""#.000"")'/>)
-                  </br>
-
-                </xsl:for-each>
-              </xsl:if>
-              <xsl:if test=""comments != ''"">
-                <br>
-                  <b>Comments:</b>
-                </br>
-                <xsl:for-each select=""comments/comment"">
-                  <br>
-                    <xsl:value-of select=""text""/>
-                  </br>
-                  <xsl:if test=""replies != ''"">
-                    <br>
-                      <b>Replies:</b>
-                    </br>
-
-                    <xsl:for-each select=""replies/reply"">
-                      <br>
-                        <span style=""display:inline-block; width: 30;""></span>
-                        <xsl:value-of select=""text""/>
-                      </br>
-
-                    </xsl:for-each>
-                  </xsl:if>
-                </xsl:for-each>
-              </xsl:if>
-            </xsl:for-each>
-          </xsl:for-each>
-        </xsl:for-each>
-      <br></br>
-      <br><b><xsl:value-of select=""version""/></b></br>
-    </BODY>
-    </HTML>
-  </xsl:template>
-</xsl:stylesheet>
-";
 
     }
 }
