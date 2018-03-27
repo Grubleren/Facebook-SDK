@@ -8,7 +8,7 @@
         </title>
         <meta name="author" content="Jens Hee"/>
         <meta name="program" content="BlackFrog"/>
-        <meta name="programversion" content="1.18"/>
+        <meta name="programversion" content="1.20"/>
 
       </head>
       <BODY  bgcolor="CFDAC4" topmargin="0" leftmargin="40" lang="da-DK" dir="ltr">
@@ -20,6 +20,17 @@
             <xsl:value-of select="groupName"/>
           </a>
         </h1>
+
+        <xsl:if test="groupDescription != ''">
+          <br>
+            <b>Group description</b>
+          </br>
+          <br>
+            <xsl:value-of select="groupDescription"/>
+          </br>
+          <br></br>
+          <br></br>
+        </xsl:if>
 
         <xsl:for-each select="albums/album">
           <br></br>
@@ -42,29 +53,84 @@
             <br></br>
           </xsl:if>
 
-          <xsl:if test="comments != ''">
-            <br>
-              <b>Comments:</b>
-            </br>
+          <xsl:if test="comments">
+            <b>Comments:</b>
+            <br></br>
             <xsl:for-each select="comments/comment">
-              <br>
-                <xsl:value-of select="text"/>
-              </br>
-              <xsl:if test="replies != ''">
-                <br>
-                  <b>Replies:</b>
-                </br>
 
+              <xsl:variable name="ccount">
+                <xsl:value-of select="position()"/>
+              </xsl:variable>
+
+              <b>
+                C<xsl:value-of select='string($ccount)'/>:&#160;
+              </b>
+              <xsl:value-of select="text"/>
+              <br></br>
+
+              <xsl:if test="attachment">
+                <xsl:variable name="hrefa">
+                  <xsl:value-of select="attachment"/>
+                </xsl:variable>
+                <a href="{$hrefa}">Attachment</a>
+                <br></br>
+              </xsl:if>
+
+              <xsl:if test="created_time">
+                <b>Created time:&#160;</b>
+                <xsl:value-of select="created_time"/>
+                <br></br>
+              </xsl:if>
+
+              <xsl:if test="likes">
+                <b>
+                  Likes:&#160;
+                </b>
+                <xsl:for-each select="likes/name">
+                  <xsl:value-of select="."/>&#160;
+                </xsl:for-each>
+                <br></br>
+              </xsl:if>
+
+              <xsl:if test="replies">
+                <b>Replies:</b>
+                <br></br>
                 <xsl:for-each select="replies/reply">
-                  <br>
-                    <span style="display:inline-block; width: 30;"></span>
-                    <xsl:value-of select="text"/>
-                  </br>
 
+                  <xsl:variable name="rcount">
+                    <xsl:value-of select="position()"/>
+                  </xsl:variable>
+
+                  <b>
+                    &#160;&#160;&#160;&#160;&#160;
+                    R<xsl:value-of select='string($rcount)'/>:&#160;
+                  </b>
+                  <xsl:value-of select="text"/>
+                  <br></br>
+
+                  <xsl:if test="created_time">
+                    <b>
+                      &#160;&#160;&#160;&#160;&#160;
+                      Created time:&#160;
+                    </b>
+                    <xsl:value-of select="created_time"/>
+                    <br></br>
+                  </xsl:if>
+
+                  <xsl:if test="likes">
+                    <b>
+                      &#160;&#160;&#160;&#160;&#160;
+                      Likes:&#160;
+                    </b>
+                    <xsl:for-each select="likes/name">
+                      <xsl:value-of select="."/>&#160;
+                    </xsl:for-each>
+                    <br></br>
+                  </xsl:if>
                 </xsl:for-each>
               </xsl:if>
+
             </xsl:for-each>
-            <br></br>
           </xsl:if>
 
           <xsl:for-each select="photos/page">
@@ -80,7 +146,7 @@
               </xsl:variable>
               <a href="{$href}">Picture</a>
               <br></br>
-                <b>Heading:</b>
+                <b>Message:</b>
               <br></br>
              
                 <xsl:value-of select="name"/>
@@ -104,7 +170,7 @@
                 <br></br>
               </xsl:if>
 
-              <xsl:if test="comments != ''">
+              <xsl:if test="comments">
                 <b>Comments:</b>
                 <br></br>
                 <xsl:for-each select="comments/comment">
@@ -119,7 +185,7 @@
                   <xsl:value-of select="text"/>
                   <br></br>
 
-                  <xsl:if test="attachment != ''">
+                  <xsl:if test="attachment">
                     <xsl:variable name="hrefa">
                       <xsl:value-of select="attachment"/>
                     </xsl:variable>
@@ -127,17 +193,23 @@
                     <br></br>
                   </xsl:if>
 
-                  <xsl:if test="likes != ''">
+                  <xsl:if test="created_time">
+                    <b>Created time:&#160;</b>
+                    <xsl:value-of select="created_time"/>
+                    <br></br>
+                  </xsl:if>
+
+                  <xsl:if test="likes">
                     <b>
-                    Likes:&#160;
-                  </b>
+                      Likes:&#160;
+                    </b>
                     <xsl:for-each select="likes/name">
                       <xsl:value-of select="."/>&#160;
                     </xsl:for-each>
                     <br></br>
                   </xsl:if>
 
-                  <xsl:if test="replies != ''">
+                  <xsl:if test="replies">
                     <b>Replies:</b>
                     <br></br>
                     <xsl:for-each select="replies/reply">
@@ -153,7 +225,16 @@
                       <xsl:value-of select="text"/>
                       <br></br>
 
-                      <xsl:if test="likes != ''">
+                      <xsl:if test="created_time">
+                        <b>
+                          &#160;&#160;&#160;&#160;&#160;
+                          Created time:&#160;
+                        </b>
+                        <xsl:value-of select="created_time"/>
+                        <br></br>
+                      </xsl:if>
+
+                      <xsl:if test="likes">
                         <b>
                           &#160;&#160;&#160;&#160;&#160;
                           Likes:&#160;
