@@ -8,7 +8,7 @@
         </title>
         <meta name="author" content="Jens Hee"/>
         <meta name="program" content="BlackFrog"/>
-        <meta name="programversion" content="1.20"/>
+        <meta name="programversion" content="1.27"/>
 
       </head>
       <BODY  bgcolor="CFDAC4" topmargin="0" leftmargin="40" lang="da-DK" dir="ltr">
@@ -45,9 +45,20 @@
               <br></br>
             </xsl:if>
 
+            <xsl:if test="full_picture">
+              <xsl:variable name="hrefp">
+                <xsl:value-of select="full_picture"/>
+              </xsl:variable>
+              <a href="{$hrefp}">Picture</a>
+              <br></br>
+            </xsl:if>
+
             <xsl:if test="story">
               <b>Story:</b>
               <br></br>
+              <xsl:if test="from/name">
+                <xsl:value-of select="from/name"/>:&#160;
+              </xsl:if>
               <xsl:value-of select="story"/>
               <br></br>
             </xsl:if>
@@ -55,6 +66,9 @@
             <xsl:if test="message">
               <b>Message:</b>
               <br></br>
+              <xsl:if test="from/name">
+                <xsl:value-of select="from/name"/>:&#160;
+              </xsl:if>
               <xsl:value-of select="message"/>
               <br></br>
             </xsl:if>

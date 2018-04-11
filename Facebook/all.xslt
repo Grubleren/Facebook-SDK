@@ -8,7 +8,7 @@
         </title>
         <meta name="author" content="Jens Hee"/>
         <meta name="program" content="BlackFrog"/>
-        <meta name="programversion" content="1.20"/>
+        <meta name="programversion" content="1.27"/>
 
       </head>
       <BODY  bgcolor="CFDAC4" topmargin="0" leftmargin="40" lang="da-DK" dir="ltr">

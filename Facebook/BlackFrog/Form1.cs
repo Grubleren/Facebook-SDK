@@ -72,6 +72,7 @@ namespace JH.Applications
         string filenameXml;
         string filenameHtml;
         XmlDocument xmlBase;
+        bool running;
 
         public Form1()
         {
@@ -82,7 +83,7 @@ namespace JH.Applications
 
             button3.BackColor = Color.Green;
 
-            Text = "BlackFrog" + " ver. 1.20"; //remember update of XSLT
+            Text = "BlackFrog" + " ver. 1.27"; //remember update of XSLT
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -187,6 +188,11 @@ namespace JH.Applications
 
         }
 
+        private void button5_Click(object sender, EventArgs e)
+        {
+            running = false;
+        }
+
         private void textBox2_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyValue != 13)
@@ -225,77 +231,6 @@ namespace JH.Applications
             }));
         }
 
-        void GoAllFeed()
-        {
-            string groupText = groupList[selectedGroup].text;
-            string groupDescription = groupList[selectedGroup].description;
-            string groupId = groupList[selectedGroup].id;
-
-            UpdateStatus("Processing all feeds, it may take several minutes" + "\r\n");
-
-            InitDoc(groupText, groupDescription, groupId);
-
-            XmlDocument doc = GetAsyncAllII("photos", groupId + "/feed", "fields=link,message,story,object_id,id,created_time");
-
-            XmlNode imported = xmlBase.ImportNode(doc.DocumentElement, true);
-            xmlBase.FirstChild.LastChild.InsertAfter(imported, null);
-
-            XmlNodeList l = GetNode(xmlBase.FirstChild.ChildNodes, "albums").FirstChild.ChildNodes;
-            int count0 = 1;
-            foreach (XmlNode node in l)
-            {
-                UpdateStatus("Processing outer loop node " + count0.ToString() + " of " + l.Count.ToString() + "\r\n");
-                count0++;
-                if (node.Name == "page")
-                {
-                    XmlNodeList l1 = node.ChildNodes;
-                    int count1 = 1;
-                    foreach (XmlNode node1 in l1)
-                    {
-                        UpdateStatus("Processing inner loop node " + count1.ToString() + " of " + l1.Count.ToString() + "\r\n");
-                        count1++;
-
-                        if (node1.Name == "data")
-                        {
-                            XmlNode node2 = GetNode(node1.ChildNodes, "object_id");
-
-                            if (node2 != null)
-                            {
-                                XmlDocument doc0 = GetAsyncAll("tags", node2.InnerText, "fields=tags");
-                                if (doc0 != null)
-                                {
-                                    XmlNode node5 = xmlBase.ImportNode(doc0.DocumentElement, true);
-                                    node1.AppendChild(node5);
-                                }
-                                XmlDocument doc1 = GetComments(node2.InnerText);
-                                if (doc1 != null)
-                                {
-                                    XmlNode node3 = xmlBase.ImportNode(doc1.DocumentElement, true);
-                                    node1.AppendChild(node3);
-                                }
-                                XmlDocument doc2 = GetLikes(node2.InnerText);
-                                if (doc2 != null)
-                                {
-                                    XmlNode node4 = xmlBase.ImportNode(doc2.DocumentElement, true);
-                                    node1.AppendChild(node4);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            XmlNode version = xmlBase.CreateNode(XmlNodeType.Element, "version", "");
-            version.InnerText = "This document was generated using " + Text + ", " + DateTime.Now.ToString();
-            xmlBase.FirstChild.AppendChild(version);
-            xmlBase.Save(filenameXml);
-
-            TransformXml2Html("feeds.xslt");
-
-            EnableAll();
-
-            UpdateStatus("Processing feeds done\r\n");
-        }
-
         void GoGroups()
         {
             try
@@ -313,7 +248,7 @@ namespace JH.Applications
                 }
 
                 XmlNodeList list = xmlDocument.FirstChild.ChildNodes;
-
+                
                 foreach (XmlNode nod in list)
                 {
                     XmlNodeList lst = nod.ChildNodes;
@@ -355,125 +290,81 @@ namespace JH.Applications
 
         void GoAlbums()
         {
-            string group = groupList[selectedGroup].text;
-            string groupId = groupList[selectedGroup].id;
-
-            UpdateStatus("Getting album list\r\n");
-
-            XmlDocument xmlDocument = GetAsyncAll("root", groupId + "/albums", "");
-
-            XmlNode data = xmlDocument.FirstChild.FirstChild.FirstChild;
-
-            if (data == null)
+            try
             {
-                UpdateStatus("Getting album list done\r\n");
-                EnableAll();
-                return;
-            }
+                string group = groupList[selectedGroup].text;
+                string groupId = groupList[selectedGroup].id;
 
-            XmlNodeList list = xmlDocument.FirstChild.ChildNodes;
+                UpdateStatus("Getting album list\r\n");
 
-            foreach (XmlNode nod in list)
-            {
-                XmlNodeList lst = nod.ChildNodes;
-                foreach (XmlNode node in lst)
+                XmlDocument xmlDocument = GetAsyncAll("root", groupId + "/albums", "");
+
+                XmlNode data = xmlDocument.FirstChild.FirstChild.FirstChild;
+
+                if (data == null)
                 {
-                    if (node.Name == "data")
-                    {
-                        XmlNodeList l = node.ChildNodes;
-                        ItemPair pair = new ItemPair(GetNode(l, "name").InnerText, "", GetNode(l, "id").InnerText);
-                        albumList.Add(pair);
+                    UpdateStatus("Getting album list done\r\n");
+                    EnableAll();
+                    return;
+                }
 
-                        if (pair.text.Substring(0, textBox2.Text.Length).ToLower() == textBox2.Text.ToLower() || textBox2.Text == "")
+                XmlNodeList list = xmlDocument.FirstChild.ChildNodes;
+
+                foreach (XmlNode nod in list)
+                {
+                    XmlNodeList lst = nod.ChildNodes;
+                    foreach (XmlNode node in lst)
+                    {
+                        if (node.Name == "data")
                         {
-                            albumSubList.Add(pair);
+                            XmlNodeList l = node.ChildNodes;
+                            ItemPair pair = new ItemPair(GetNode(l, "name").InnerText, "", GetNode(l, "id").InnerText);
+                            albumList.Add(pair);
+
+                            if (pair.text.Substring(0, textBox2.Text.Length).ToLower() == textBox2.Text.ToLower() || textBox2.Text == "")
+                            {
+                                albumSubList.Add(pair);
+                            }
                         }
                     }
                 }
+
+                Invoke(new Action(() =>
+                {
+                    albumSubListSorted.Clear();
+                    foreach (ItemPair album in albumSubList)
+                        albumSubListSorted.Add(album);
+                    albumSubListSorted.Sort(CompareItemPair);
+
+                    foreach (ItemPair album in albumSubListSorted)
+                        comboBox2.Items.Add(album.text);
+
+                    EnableAll();
+
+                    comboBox2.SelectedIndex = 0;
+
+                    UpdateStatus("Getting album list done\r\n");
+                }));
             }
-
-            Invoke(new Action(() =>
+            catch(Exception e)
             {
-                albumSubListSorted.Clear();
-                foreach (ItemPair album in albumSubList)
-                    albumSubListSorted.Add(album);
-                albumSubListSorted.Sort(CompareItemPair);
-
-                foreach (ItemPair album in albumSubListSorted)
-                    comboBox2.Items.Add(album.text);
-
-                EnableAll();
-
-                comboBox2.SelectedIndex = 0;
-
-                UpdateStatus("Getting album list done\r\n");
-            }));
+                MessageBox.Show(e.Message);
+            }
         }
 
         void GoSingle()
         {
-            string groupText = groupList[selectedGroup].text;
-            string groupDescription = groupList[selectedGroup].description;
-            string groupId = groupList[selectedGroup].id;
-            string albumText = albumSubListSorted[selectedAlbum].text;
-            string albumId = albumSubListSorted[selectedAlbum].id;
-
-            UpdateStatus("Processing album " + (selectedAlbum + 1).ToString() + " of " + 1.ToString() + "\r\n");
-
-            InitDoc(groupText, groupDescription, groupId);
-
-            XmlDocument doc2 = CreateAlbum(albumText, albumId);
-            XmlNode imported;
-            XmlDocument doc3 = GetComments(albumId);
-            if (doc3 != null)
+            try
             {
-                imported = doc2.ImportNode(doc3.DocumentElement, true);
-                doc2.DocumentElement.AppendChild(imported);
-            }
-            XmlDocument doc4 = GetPhotos(albumId, 1);
-            if (doc4 != null)
-            {
-                imported = doc2.ImportNode(doc4.DocumentElement, true);
-                doc2.DocumentElement.AppendChild(imported);
-            }
-            XmlDocument doc5 = GetLikes(albumId);
-            if (doc5 != null)
-            {
-                imported = doc2.ImportNode(doc5.DocumentElement, true);
-                doc2.DocumentElement.AppendChild(imported);
-            }
-            imported = xmlBase.ImportNode(doc2.DocumentElement, true);
-            xmlBase.FirstChild.LastChild.InsertAfter(imported, null);
+                string groupText = groupList[selectedGroup].text;
+                string groupDescription = groupList[selectedGroup].description;
+                string groupId = groupList[selectedGroup].id;
+                string albumText = albumSubListSorted[selectedAlbum].text;
+                string albumId = albumSubListSorted[selectedAlbum].id;
 
-            XmlNode version = xmlBase.CreateNode(XmlNodeType.Element, "version", "");
-            version.InnerText = "This document was generated using " + Text + ", " + DateTime.Now.ToString();
-            xmlBase.FirstChild.AppendChild(version);
-            xmlBase.Save(filenameXml);
+                UpdateStatus("Processing album " + (selectedAlbum + 1).ToString() + " of " + 1.ToString() + "\r\n");
 
-            TransformXml2Html("single.xslt");
-
-            EnableAll();
-
-            UpdateStatus("Processing album done\r\n");
-        }
-
-        void GoAll()
-        {
-            string groupText = groupList[selectedGroup].text;
-            string groupDescription = groupList[selectedGroup].description;
-            string groupId = groupList[selectedGroup].id;
-
-
-            InitDoc(groupText, groupDescription, groupId);
-
-            XmlNode n2 = null;
-            int albumIndex = 0;
-            foreach (ItemPair album in albumSubList)
-            {
-                UpdateStatus("Processing album " + (albumIndex + 1).ToString() + " of " + albumSubList.Count.ToString() + "\r\n");
-
-                string albumText = albumSubList[albumIndex].text;
-                string albumId = albumSubList[albumIndex].id;
+                InitDoc(groupText, groupDescription, groupId);
 
                 XmlDocument doc2 = CreateAlbum(albumText, albumId);
                 XmlNode imported;
@@ -496,23 +387,176 @@ namespace JH.Applications
                     doc2.DocumentElement.AppendChild(imported);
                 }
                 imported = xmlBase.ImportNode(doc2.DocumentElement, true);
-                xmlBase.FirstChild.LastChild.InsertAfter(imported, n2);
-                n2 = imported;
-                albumIndex++;
+                xmlBase.FirstChild.LastChild.InsertAfter(imported, null);
+
+                XmlNode version = xmlBase.CreateNode(XmlNodeType.Element, "version", "");
+                version.InnerText = "This document was generated using " + Text + ", " + DateTime.Now.ToString();
+                xmlBase.FirstChild.AppendChild(version);
+                xmlBase.Save(filenameXml);
+
+                TransformXml2Html("single.xslt");
+
+                EnableAll();
+
+                UpdateStatus("Processing album done\r\n");
             }
+            catch(Exception e)
+            {
+                MessageBox.Show(e.Message);
+            }
+        }
 
-            XmlNode version = xmlBase.CreateNode(XmlNodeType.Element, "version", "");
-            version.InnerText = "This document was generated using " + Text + ", " + DateTime.Now.ToString();
-            xmlBase.FirstChild.AppendChild(version);
-            xmlBase.Save(filenameXml);
+        void GoAll()
+        {
+            try
+            {
+                string groupText = groupList[selectedGroup].text;
+                string groupDescription = groupList[selectedGroup].description;
+                string groupId = groupList[selectedGroup].id;
 
-            xmlBase.Save(filenameXml);
+                running = true;
 
-            TransformXml2Html("all.xslt");
+                InitDoc(groupText, groupDescription, groupId);
 
-            EnableAll();
+                XmlNode n2 = null;
+                int albumIndex = 0;
+                foreach (ItemPair album in albumSubList)
+                {
+                    UpdateStatus("Processing album " + (albumIndex + 1).ToString() + " of " + albumSubList.Count.ToString() + "\r\n");
 
-            UpdateStatus("Processing albums done\r\n");
+                    string albumText = albumSubList[albumIndex].text;
+                    string albumId = albumSubList[albumIndex].id;
+
+                    XmlDocument doc2 = CreateAlbum(albumText, albumId);
+                    XmlNode imported;
+                    XmlDocument doc3 = GetComments(albumId);
+                    if (doc3 != null)
+                    {
+                        imported = doc2.ImportNode(doc3.DocumentElement, true);
+                        doc2.DocumentElement.AppendChild(imported);
+                    }
+                    XmlDocument doc4 = GetPhotos(albumId, 1);
+                    if (doc4 != null)
+                    {
+                        imported = doc2.ImportNode(doc4.DocumentElement, true);
+                        doc2.DocumentElement.AppendChild(imported);
+                    }
+                    XmlDocument doc5 = GetLikes(albumId);
+                    if (doc5 != null)
+                    {
+                        imported = doc2.ImportNode(doc5.DocumentElement, true);
+                        doc2.DocumentElement.AppendChild(imported);
+                    }
+                    imported = xmlBase.ImportNode(doc2.DocumentElement, true);
+                    xmlBase.FirstChild.LastChild.InsertAfter(imported, n2);
+                    n2 = imported;
+                    albumIndex++;
+                    if (!running)
+                        goto finito;
+                }
+                finito:
+                XmlNode version = xmlBase.CreateNode(XmlNodeType.Element, "version", "");
+                version.InnerText = "This document was generated using " + Text + ", " + DateTime.Now.ToString();
+                xmlBase.FirstChild.AppendChild(version);
+                xmlBase.Save(filenameXml);
+
+                xmlBase.Save(filenameXml);
+
+                TransformXml2Html("all.xslt");
+
+                EnableAll();
+
+                UpdateStatus("Processing albums done\r\n");
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(e.Message);
+            }
+        }
+
+        void GoAllFeed()
+        {
+            try
+            {
+                running = true;
+                string groupText = groupList[selectedGroup].text;
+                string groupDescription = groupList[selectedGroup].description;
+                string groupId = groupList[selectedGroup].id;
+
+                UpdateStatus("Processing all feeds, it may take several minutes" + "\r\n");
+
+                InitDoc(groupText, groupDescription, groupId);
+
+                XmlDocument doc = GetAsyncAllII("photos", groupId + "/feed", "fields=link,message,from,story,object_id,id,created_time,full_picture");
+
+                XmlNode imported = xmlBase.ImportNode(doc.DocumentElement, true);
+                xmlBase.FirstChild.LastChild.InsertAfter(imported, null);
+
+                XmlNodeList l = GetNode(xmlBase.FirstChild.ChildNodes, "albums").FirstChild.ChildNodes;
+                int count0 = 1;
+                foreach (XmlNode node in l)
+                {
+                    UpdateStatus("Processing outer loop node " + count0.ToString() + " of " + l.Count.ToString() + "\r\n");
+                    count0++;
+                    if (node.Name == "page")
+                    {
+                        XmlNodeList l1 = node.ChildNodes;
+                        int count1 = 1;
+                        foreach (XmlNode node1 in l1)
+                        {
+                            UpdateStatus("Processing inner loop node " + count1.ToString() + " of " + l1.Count.ToString() + "\r\n");
+                            count1++;
+
+                            if (node1.Name == "data")
+                            {
+                                if (node1.ChildNodes != null)
+                                {
+                                    XmlNode node2 = GetNode(node1.ChildNodes, "object_id");
+
+                                    if (node2 != null)
+                                    {
+                                        XmlDocument doc0 = GetAsyncAll("tags", node2.InnerText, "fields=tags");
+                                        if (doc0 != null)
+                                        {
+                                            XmlNode node5 = xmlBase.ImportNode(doc0.DocumentElement, true);
+                                            node1.AppendChild(node5);
+                                        }
+                                        XmlDocument doc1 = GetComments(node2.InnerText);
+                                        if (doc1 != null)
+                                        {
+                                            XmlNode node3 = xmlBase.ImportNode(doc1.DocumentElement, true);
+                                            node1.AppendChild(node3);
+                                        }
+                                        XmlDocument doc2 = GetLikes(node2.InnerText);
+                                        if (doc2 != null)
+                                        {
+                                            XmlNode node4 = xmlBase.ImportNode(doc2.DocumentElement, true);
+                                            node1.AppendChild(node4);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!running)
+                        goto finito;
+                }
+                finito:
+                XmlNode version = xmlBase.CreateNode(XmlNodeType.Element, "version", "");
+                version.InnerText = "This document was generated using " + Text + ", " + DateTime.Now.ToString();
+                xmlBase.FirstChild.AppendChild(version);
+                xmlBase.Save(filenameXml);
+
+                TransformXml2Html("feeds.xslt");
+
+                EnableAll();
+
+                UpdateStatus("Processing feeds done\r\n");
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(e.Message);
+            }
         }
 
         void InitDoc(string groupText, string groupDescription, string groupId)
@@ -630,7 +674,14 @@ namespace JH.Applications
                         doc.DocumentElement.InsertAfter(n, n2);
                         n2 = n;
                         XmlNode n1 = doc.CreateNode(XmlNodeType.Element, "text", "");
-                        n1.InnerText = GetNode(node.ChildNodes, "from").FirstChild.InnerText + ": " + GetNode(node.ChildNodes, "message").InnerText;
+                        string sfm ="";
+                        XmlNode nf = GetNode(node.ChildNodes, "from");
+                        if (nf != null && nf.FirstChild != null)
+                            sfm = nf.FirstChild.InnerText;
+                        XmlNode nm = GetNode(node.ChildNodes, "message");
+                        if (nm != null)
+                            sfm += ": " + nm.InnerText;
+                        n1.InnerText = sfm;
                         n.InsertAfter(n1, null);
                         XmlNode n6 = n1;
                         XmlNode n7 = doc.CreateNode(XmlNodeType.Element, "created_time", "");
@@ -724,7 +775,14 @@ namespace JH.Applications
                         doc.DocumentElement.InsertAfter(n, n2);
                         n2 = n;
                         XmlNode n1 = doc.CreateNode(XmlNodeType.Element, "text", "");
-                        n1.InnerText = GetNode(node.ChildNodes, "from").FirstChild.InnerText + ": " + GetNode(node.ChildNodes, "message").InnerText;
+                        string sfm = "";
+                        XmlNode nf = GetNode(node.ChildNodes, "from");
+                        if (nf != null && nf.FirstChild != null)
+                            sfm = nf.FirstChild.InnerText;
+                        XmlNode nm = GetNode(node.ChildNodes, "message");
+                        if (nm != null)
+                            sfm += ": " + nm.InnerText;
+                        n1.InnerText = sfm;
                         n.InsertAfter(n1, null);
 
                         XmlNode n7 = doc.CreateNode(XmlNodeType.Element, "created_time", "");
@@ -957,6 +1015,7 @@ namespace JH.Applications
                 foreach (Control c in Controls)
                     c.Enabled = false;
                 textBox3.Enabled = true;
+                button5.Enabled = true;
             }));
         }
 
